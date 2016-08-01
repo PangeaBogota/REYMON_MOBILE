@@ -45,6 +45,7 @@ app_angular.controller('sessionController',['bootbox','Conexion','$scope','$loca
     $scope.actividades=[];
     $scope.status=[];
     $scope.alerta=[];
+    $scope.errorAlerta=[];
     $scope.$watch('online', function(newStatus) 
         {$scope.status.connextionstate=newStatus;  
             if ($scope.status.connextionstate==false) {
@@ -102,7 +103,7 @@ app_angular.controller('sessionController',['bootbox','Conexion','$scope','$loca
                           url: 'http://demos.pedidosonline.co/Mobile/SubirDatos?usuario='+$scope.usuario+'&entidad=ACTIVIDADES&codigo_empresa=' + $scope.codigoempresa + '&datos=' + JSON.stringify($scope.objeto),
                             }).then(
                             function success(data) { console.log(data.data.message)}, 
-                            function error(err) {Mensajes('Error al Subir la Actividad','error','');return 
+                            function error(err) {Mensajes('Error al Subir la Actividad','error','');$scope.errorAlerta.bandera=1;return 
                         });  
                     }  
                 }
@@ -144,13 +145,13 @@ app_angular.controller('sessionController',['bootbox','Conexion','$scope','$loca
                     })
                     .then(
                         function success(data) {}, 
-                        function error(err) {Mensajes('Error al Subir items del Pedido','error','');return }
+                        function error(err) {Mensajes('Error al Subir items del Pedido','error','');$scope.errorAlerta.bandera=1;return }
                     ); 
                 }
             });
         });
-        responsePromise.error(function() {
-            function error(err) {Mensajes('Error al Subir El Pedido','error','');return }
+        responsePromise.error(function(error) {
+            Mensajes('Error al Subir El Pedido','error',''); $scope.errorAlerta.bandera=1;return
         });
     }
     $scope.sincronizar=function(){
@@ -158,6 +159,11 @@ app_angular.controller('sessionController',['bootbox','Conexion','$scope','$loca
         $scope.datosSubir();
         window.setTimeout(function(){
             //VACIAR TABLAS
+            if ($scope.errorAlerta.bandera==1) {
+                Mensajes('Error al Sincronizar, Por favor revise que su conexion sea estable','error','');
+                ProcesadoHiden();
+                return
+            }
             CRUD.Updatedynamic("delete from crm_actividades");
             CRUD.Updatedynamic("delete from t_pedidos");
             CRUD.Updatedynamic("delete from t_pedidos_detalle");
@@ -185,8 +191,6 @@ app_angular.controller('sessionController',['bootbox','Conexion','$scope','$loca
                 contador=0;
                 NewQuery=true;
                 stringSentencia='';
-                //DATOS_ENTIDADES_SINCRONIZACION[i]=localStorage.getItem(STEP_SINCRONIZACION[i].toString());
-                //DATOS_ENTIDADES_SINCRONIZACION[i] = JSON.parse(DATOS_ENTIDADES_SINCRONIZACION[i]);
                 for(var j=0; j < DATOS_ENTIDADES_SINCRONIZACION[i].length; j++) {
                     contador1++;
                     contador++;
@@ -298,7 +302,8 @@ app_angular.controller('sessionController',['bootbox','Conexion','$scope','$loca
                         "','"+DATOS_ENTIDADES_SINCRONIZACION[i][j].porcen_descuento2+
                         "','"+DATOS_ENTIDADES_SINCRONIZACION[i][j].valor_porcen_descuento2+
                         "','"+DATOS_ENTIDADES_SINCRONIZACION[i][j].porcen_descuento3+
-                        "','"+DATOS_ENTIDADES_SINCRONIZACION[i][j].valor_porcen_descuento3+"' "; 
+                        "','"+DATOS_ENTIDADES_SINCRONIZACION[i][j].valor_porcen_descuento3+
+                        "','"+DATOS_ENTIDADES_SINCRONIZACION[i][j].observaciones+"' "; 
                         if (contador==499) {
                             CRUD.Updatedynamic(stringSentencia)
                             NewQuery=true;

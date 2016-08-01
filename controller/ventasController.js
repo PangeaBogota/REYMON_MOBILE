@@ -341,12 +341,8 @@ app_angular.controller("pedidoController",['Conexion','$scope','$location','$htt
 			a++
 			angular.forEach(value.tallas,function(detalle,key){
 				CRUD.select('select max(rowid) as rowid from t_pedidos',function(elem){
-					$scope.p1=[];
-					$scope.p1.push(elem);
-					$scope.ultimoseleccionado=[];
-					$scope.ultimoseleccionado=$scope.p1[0];
 					$scope.detalle=[];
-					$scope.detalle.rowid=$scope.ultimoseleccionado.rowid+1+a;
+					$scope.detalle.rowid=elem.rowid+1+a;
 					$scope.detalle.rowid_item=value.rowid_item;
 					$scope.detalle.rowid_pedido=$scope.pedidos.rowid;
 					$scope.detalle.linea_descripcion=value.descripcion;
@@ -356,11 +352,15 @@ app_angular.controller("pedidoController",['Conexion','$scope','$location','$htt
 					$scope.detalle.cantidad_base=detalle.cantidad;
 					$scope.detalle.stock=0;
 					$scope.detalle.porcen_descuento=value.impuesto_porcentaje;
-					$scope.detalle.valor_impuesto=value.iva*value.cantidad;
+					$scope.calculo=[];
+					$scope.calculo.valor_base=value.precio*detalle.cantidad;
+					$scope.calculo.iva=$scope.calculo.valor_base*value.impuesto_porcentaje/100;
+					$scope.detalle.valor_impuesto=$scope.calculo.iva
+					$scope.calculo.total=$scope.calculo.valor_base+$scope.calculo.iva;
 					$scope.detalle.valor_descuento=0;
-					$scope.detalle.valor_total_linea=(value.precio*value.cantidad)+$scope.detalle.valor_impuesto;
+					$scope.detalle.valor_total_linea=$scope.calculo.total;
 					$scope.detalle.precio_unitario=value.precio;
-					$scope.detalle.valor_base=value.precio*value.cantidad;
+					$scope.detalle.valor_base=value.precio*detalle.cantidad;
 					$scope.detalle.usuariocreacion=$scope.sessiondate.nombre_usuario;
 					$scope.detalle.item_ext1=detalle.talla;
 					$scope.detalle.observaciones=value.observaciones;
@@ -378,10 +378,8 @@ app_angular.controller("pedidoController",['Conexion','$scope','$location','$htt
 		$scope.CalcularCantidadValorTotal();
 	}
 	$scope.guardarCabezera=function(){
-		CRUD.select('select max(rowid) as rowid from t_pedidos',function(elem){$scope.ultimoRegistro.push(elem);
-
-			$scope.ultimoRegistroseleccionado=$scope.ultimoRegistro[0];
-			$scope.pedidos.rowid=$scope.ultimoRegistroseleccionado.rowid+1;
+		CRUD.select('select max(rowid) as rowid from t_pedidos',function(elem){
+			$scope.pedidos.rowid=elem.rowid+1;
 			$scope.pedido_detalle.rowid_pedido=$scope.pedidos.rowid;
 			$scope.pedidos.modulo_creacion='MOBILE';
 			$scope.pedidos.valor_total=$scope.pedidoDetalles.total;
@@ -389,8 +387,7 @@ app_angular.controller("pedidoController",['Conexion','$scope','$location','$htt
 			$scope.pedidos.usuariocreacion=$scope.sessiondate.nombre_usuario;
 			$scope.pedidos.rowid_empresa=4;
 			$scope.pedidos.id_cia=1;
-			$scope.pedidos.fecha_pedido=$scope.pedidos.fecha_solicitud;
-			$scope.pedidos.fecha_entrega=$scope.pedidos.fecha_solicitud;
+			$scope.pedidos.fecha_solicitud=$scope.pedidos.fecha_pedido;
 			$scope.pedidos.valor_impuesto=$scope.pedidoDetalles.iva;
 			$scope.pedidos.valor_descuento=0;
 			$scope.pedidos.id_estado=101;
@@ -475,14 +472,34 @@ app_angular.controller("PedidosController",['Conexion','$scope',function (Conexi
 	$scope.pedidos = [];
 	$scope.pedidoSeleccionado=[];
 	$scope.detallespedido=[];
-    CRUD.select('select distinct pedidos.valor_impuesto,pedidos.fecha_solicitud,pedidos.sincronizado, pedidos.rowid as rowidpedido,terceros.razonsocial,sucursal.nombre_sucursal,punto_envio.nombre_punto_envio,pedidos.valor_total,detalle.rowid_pedido,count(detalle.rowid_pedido) cantidaddetalles,sum(detalle.cantidad) as cantidadproductos from  t_pedidos pedidos inner join erp_terceros_sucursales sucursal on sucursal.rowid=pedidos.rowid_cliente_facturacion  inner join erp_terceros terceros on terceros.rowid=sucursal.rowid_tercero  left  join t_pedidos_detalle detalle on detalle.rowid_pedido=pedidos.rowid left join erp_terceros_punto_envio punto_envio on punto_envio.rowid=pedidos.id_punto_envio group by  pedidos.fecha_solicitud,detalle.rowid_pedido,pedidos.rowid,terceros.razonsocial,sucursal.nombre_sucursal,punto_envio.nombre_punto_envio,pedidos.valor_total order by pedidos.fecha_solicitud desc    LIMIT 50',function(elem) {$scope.pedidos.push(elem)});
+    CRUD.select('select distinct pedidos.valor_impuesto,pedidos.fecha_solicitud,pedidos.sincronizado, pedidos.rowid as rowidpedido,terceros.razonsocial,sucursal.nombre_sucursal,punto_envio.nombre_punto_envio,pedidos.valor_total,detalle.rowid_pedido,count(detalle.rowid_pedido) cantidaddetalles,sum(detalle.cantidad) as cantidadproductos from  t_pedidos pedidos inner join erp_terceros_sucursales sucursal on sucursal.rowid=pedidos.rowid_cliente_facturacion  inner join erp_terceros terceros on terceros.rowid=sucursal.rowid_tercero  left  join t_pedidos_detalle detalle on detalle.rowid_pedido=pedidos.rowid left join erp_terceros_punto_envio punto_envio on punto_envio.rowid=pedidos.id_punto_envio group by  pedidos.fecha_solicitud,detalle.rowid_pedido,pedidos.rowid,terceros.razonsocial,sucursal.nombre_sucursal,punto_envio.nombre_punto_envio,pedidos.valor_total order by pedidos.fecha_solicitud desc    LIMIT 50',
+    	function(elem) {$scope.pedidos.push(elem)});
     CRUD.select("select count(*) as cantidad",function(elem){
-    	
     	if (elem.cantidad==0) {
     		$scope.validacion=true;
     	}
     })
-	$scope.ConsultarDatos =function(pedido){
+    $scope.ConsultarDatos=function(pedido){
+    	$scope.detallespedido=[];
+		$scope.pedidoSeleccionado=pedido;
+		$scope.cont=0;
+		CRUD.select("select distinct rowid_item,linea_descripcion  from t_pedidos_detalle where rowid_pedido ='"+pedido.rowidpedido+"'",function(elem){
+			debugger
+			$scope.tallasAgregar=[];
+			CRUD.select("select tpd.item_ext1 as talla,tpd.cantidad ,count(*) as c from erp_items i "+
+				" inner join t_pedidos_detalle tpd on tpd.rowid_item=i.rowid "+
+				" where tpd.rowid_pedido='"+pedido.rowidpedido+"' and tpd.rowid_item='"+elem.rowid_item+"' group by  tpd.item_ext1,talla,tpd.cantidad ",function(talla){
+					$scope.cont++;
+					$scope.tallasAgregar.push(talla);
+					if (talla.c==$scope.cont) {
+						elem.tallas=$scope.tallasAgregar;
+						$scope.detallespedido.push(elem);
+					}
+			})	
+		})
+			
+    }
+	$scope.ConsultarDatos1 =function(pedido){
 		$scope.detallespedido=[];
 		$scope.pedidoSeleccionado=pedido;
 
